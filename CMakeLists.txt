@@ -63,6 +63,21 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+if(true)
+add_executable(test_node src/test_node.cpp)
+target_include_directories(test_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+target_compile_features(test_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_link_libraries(
+  test_node
+  "ros2_spdlog_logger"
+)
+
+install(TARGETS test_node
+  DESTINATION lib/${PROJECT_NAME})
+endif()
+
 ament_export_include_directories(
   "include/${PROJECT_NAME}"
 )
