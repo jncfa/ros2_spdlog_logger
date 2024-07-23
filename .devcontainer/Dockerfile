@@ -1,4 +1,4 @@
-FROM jncfa/ros2:humble-dev 
+FROM jncfa/ros2:jazzy-dev
 
 # Set up auto-source of workspace for ros user
 ARG WORKSPACE

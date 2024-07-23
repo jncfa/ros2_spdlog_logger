@@ -12,7 +12,7 @@ find_package(spdlog_vendor REQUIRED)
 find_package(rcl_logging_interface REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclc REQUIRED)
+find_package(rcl REQUIRED)
 find_package(fmt REQUIRED)
 
 add_library(ros2_spdlog_logger src/ros2_spdlog_logger.cpp)
@@ -25,7 +25,7 @@ target_include_directories(ros2_spdlog_logger PUBLIC
 ament_target_dependencies(
   ros2_spdlog_logger
   "rclcpp"
-  "rclc"
+  "rcl"
   "spdlog_vendor"
   "rcl_logging_interface"
   "rcutils"
