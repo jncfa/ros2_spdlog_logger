@@ -3,24 +3,24 @@
 #include <cinttypes>
 #include <cstdint>
 
-#include "rcutils/allocator.h"
-#include "rcutils/logging.h"
-#include "rcutils/process.h"
-#include "rcutils/snprintf.h"
-#include "rcutils/strdup.h"
-#include "rcutils/time.h"
+#include <rcutils/allocator.h>
+#include <rcutils/logging.h>
+#include <rcutils/process.h>
+#include <rcutils/snprintf.h>
+#include <rcutils/strdup.h>
+#include <rcutils/time.h>
 
-#include "rcl/init.h"
-#include "rcl/logging.h"
-#include "rcl_logging_interface/rcl_logging_interface.h"
+#include <rcl/init.h>
+#include <rcl/logging.h>
+#include <rcl_logging_interface/rcl_logging_interface.h>
 
-#include "rclcpp/exceptions.hpp"
-#include "rclcpp/contexts/default_context.hpp"
-#include "rcpputils/scope_exit.hpp"
+#include <rclcpp/exceptions.hpp>
+#include <rclcpp/contexts/default_context.hpp>
+#include <rcpputils/scope_exit.hpp>
 
-#include "spdlog/async.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/sinks/basic_file_sink.h"
+#include <spdlog/async.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 #include "ros2_spdlog_logger/ros2_spdlog_logger.hpp"
 
@@ -253,8 +253,10 @@ void init_with_global_context(
     );
 
 
-    // initialize spdlog default thread pool (1 threads with 8k size queue to ensure ordering)
+    // initialize spdlog default thread pool if async (1 threads with 8k size queue to ensure ordering)
+    #ifndef DISABLE_ASYNC_LOGGER
     spdlog::init_thread_pool(8192, 1);
+    #endif// !DISABLE_ASYNC_LOGGER
 
     // get the filename for logging and initialize our spdlog sinks
     create_sinks(get_log_filename());
