@@ -46,9 +46,8 @@ ROS2_SPDLOG_LOGGER_LOCAL std::string getenv_opt(const std::string_view env, cons
 {
   return getenv_opt(env).value_or(default_value);
 }
-}
 
-
+// convert ros severity levels to spdlog
 ROS2_SPDLOG_LOGGER_LOCAL spdlog::level::level_enum to_spdlog_severity(
   int external_level)
 {
@@ -67,6 +66,7 @@ ROS2_SPDLOG_LOGGER_LOCAL spdlog::level::level_enum to_spdlog_severity(
       return spdlog::level::level_enum::off;
   }
 }
+}
 
 
 extern "C" {
@@ -82,7 +82,7 @@ ROS2_SPDLOG_LOGGER_PUBLIC void logging_sink_output_handler(
   // build message using the funcs that would be used by rcl
   const auto default_allocator = rcutils_get_default_allocator();
 
-  // local buffer for processing messages (same size as rcutils)
+  // local buffer for processing messages (same size as defined in rcutils)
   thread_local std::array<char, 2048> msg_buf;
 
   rcutils_char_array_t msg_array = {
