@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdio>
 #include <fmt/core.h>
 #include <memory>
@@ -6,6 +7,7 @@
 #include <rcpputils/scope_exit.hpp>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <thread>
 #include "ros2_spdlog_logger/ros2_spdlog_logger.hpp"
 
 #include "spdlog/sinks/callback_sink.h"
@@ -22,15 +24,7 @@ void logger_usage()
   auto logger = ros2_spdlog_logger::get_logger("my_custom_logger");
 
   // the loggers are simply typedefs to spdlog::Logger, so if you know how to use those it should be easy!
-  logger->info("no way! i can just use this spdlog now!");
-  logger->info("can use fmt {} now! yay", "formatting");
-
-  // though you are encouraged to use the macros instead, since this will provide additional debug info
-  LOG_INFO(logger, "can use fmt {} now! whoaaa", "formatting");
-
-  // in case of legacy code / compat with standard ros2 packages, this will reroute the calls to spdlog safely while formatting
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp logger"),
-    "But I can still use the old rclcpp %s %s, nice!", "formatting", "too");
+  logger->warn("no way! i can just use this spdlog now!");
 }
 
 int main(int argc, char ** argv)
@@ -68,8 +62,9 @@ int main(int argc, char ** argv)
     for (auto x = 0; x < 10; x++) {
       vectest.emplace_back([](){
         // use the logger a bunch of times
-          for(auto y = 0; y < 100000; y++) {
+          for(auto y = 0; y < 100000 && rclcpp::ok(); y++) {
             logger_usage();
+            std::this_thread::sleep_for(std::chrono::seconds(1));
           }
       });
     }
@@ -80,6 +75,11 @@ int main(int argc, char ** argv)
       }
     }
   }
-  spdlog::error("print this now!");
+
+  // be careful with logging if you have hook_on_shutdown enabled!
+  // any logging calls after getting SIGINT will cause issues!
+  if (rclcpp::ok()){
+    spdlog::error("print this now!");
+  }
   return EXIT_SUCCESS;
 }

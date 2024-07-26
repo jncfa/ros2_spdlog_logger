@@ -12,11 +12,6 @@
 #define ROS2_SPDLOG_FATAL_LEVEL SPDLOG_LEVEL_CRITICAL
 #define ROS2_SPDLOG_UNSET_LEVEL SPDLOG_LEVEL_OFF
 
-// use slightly modified ros pattern ([{severity}] [{time}] [{name}]: {message}): "[%l] [%Y-%m-%d %H:%M:%S.%e] [%n] [%s:%#]: %v"
-// spdlog's is [%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%s:%#] %v
-
-#define ROS2_SPDLOG_DEFAULT_PATTERN "%+"
-
 // if not defined, set it to info
 #ifndef ROS2_SPDLOG_ACTIVE_LEVEL
 #define ROS2_SPDLOG_ACTIVE_LEVEL ROS2_SPDLOG_INFO_LEVEL

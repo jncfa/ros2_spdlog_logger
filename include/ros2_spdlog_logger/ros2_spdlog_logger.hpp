@@ -21,6 +21,7 @@ using LoggerPtr = std::shared_ptr<Logger>;
 ROS2_SPDLOG_LOGGER_PUBLIC void init(
   int argc,
   char const * const * argv,
+  bool hook_on_shutdown = true,
   const rclcpp::InitOptions & init_options = rclcpp::InitOptions(),
   rclcpp::SignalHandlerOptions signal_handler_options = rclcpp::SignalHandlerOptions::All);
 
@@ -31,7 +32,10 @@ ROS2_SPDLOG_LOGGER_PUBLIC void init(
 ROS2_SPDLOG_LOGGER_PUBLIC std::vector<std::string> init_and_remove_ros_arguments(
   int argc,
   char const * const * argv,
+  bool hook_on_shutdown = true,
   const rclcpp::InitOptions & init_options = rclcpp::InitOptions());
+
+ROS2_SPDLOG_LOGGER_PUBLIC void shutdown();
 
 /**
  * Get a logger instance with the given logger name, using default settings.

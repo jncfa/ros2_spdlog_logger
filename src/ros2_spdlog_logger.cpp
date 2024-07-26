@@ -5,6 +5,8 @@
 #include <cinttypes>
 #include <cstdint>
 
+#include <iterator>
+#include <mutex>
 #include <optional>
 #include <rclcpp/utilities.hpp>
 #include <rcutils/allocator.h>
@@ -32,6 +34,13 @@
 #include "ros2_spdlog_logger/exceptions.hpp"
 #include "ros2_spdlog_logger/visibility_control.h"
 
+
+// use slightly modified ros pattern ([{severity}] [{time}] [{name}]: {message}): "[%l] [%Y-%m-%d %H:%M:%S.%e] [%n] [%s:%#]: %v"
+// spdlog's is [%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%s:%#] %v
+
+#define SPDLOG_DEFAULT_PATTERN "%+"
+#define ROS_DEFAULT_PATTERN "[%^%8!l%$] [%E.%F] %@ [%n]: %v"
+
 namespace {
 // helper function to get environment variable as a optional
 ROS2_SPDLOG_LOGGER_LOCAL std::optional<std::string> getenv_opt(const std::string_view env)
@@ -45,6 +54,40 @@ ROS2_SPDLOG_LOGGER_LOCAL std::optional<std::string> getenv_opt(const std::string
 ROS2_SPDLOG_LOGGER_LOCAL std::string getenv_opt(const std::string_view env, const std::string& default_value)
 {
   return getenv_opt(env).value_or(default_value);
+}
+
+ROS2_SPDLOG_LOGGER_LOCAL bool getenv_value(const std::string_view env, const bool default_value)
+{
+  const auto env_value = getenv_opt(env);
+  if (!env_value.has_value()){
+    return default_value;
+  }
+
+  std::string lowered_env = env_value.value();
+
+  std::transform(lowered_env.begin(), lowered_env.end(), lowered_env.begin(),
+    [](unsigned char c){ return std::tolower(c); });
+
+  if (env_value->compare("0") == 0 || env_value->compare("false") == 0){
+    return false;
+  }
+  else if (env_value->compare("1") == 0 || env_value->compare("true") == 0){
+    return true;
+  }
+
+  // unable to parse it, just return default value
+  return default_value;
+}
+
+ROS2_SPDLOG_LOGGER_LOCAL std::string get_pattern(){
+  static const auto default_pattern = getenv_opt("ROS2_SPDLOG_PATTERN", SPDLOG_DEFAULT_PATTERN);
+  static const auto use_ros_pattern = getenv_value("USE_ROS_PATTERN", false);
+
+  if (use_ros_pattern){
+    return ROS_DEFAULT_PATTERN;
+  }
+
+  return default_pattern;
 }
 
 // convert ros severity levels to spdlog
@@ -163,7 +206,7 @@ ROS2_SPDLOG_LOGGER_LOCAL ros2_spdlog_logger::LoggerPtr create_logger(
 #endif // !DISABLE_ASYNC_LOGGER
 
   // get the default pattern that we want for logging everything
-  static const auto default_pattern = getenv_opt("ROS2_SPDLOG_PATTERN", ROS2_SPDLOG_DEFAULT_PATTERN);
+  static const auto default_pattern = get_pattern();
   logger->set_pattern(default_pattern);
 
   // maintain same flushing behavior as in rcl_logging_spdlog
@@ -252,6 +295,16 @@ ROS2_SPDLOG_LOGGER_LOCAL std::string get_rcl_logging_filename()
 */
 ROS2_SPDLOG_LOGGER_LOCAL void shutdown_logging_system()
 {
+  static std::mutex shutdown_mux;
+  std::scoped_lock lock{shutdown_mux};
+
+  if (!is_logging_system_initialized) {
+    throw ros2_spdlog_logger::LoggingNotInitialized();
+  }
+
+  // stop rerouting messages from rcutils
+  rcutils_logging_set_output_handler(nullptr);
+
   spdlog::shutdown();
   global_sink_list.clear();
   is_logging_system_initialized = false;
@@ -260,10 +313,10 @@ ROS2_SPDLOG_LOGGER_LOCAL void shutdown_logging_system()
 /**
 * Initializes our logging system.
 */
-ROS2_SPDLOG_LOGGER_LOCAL void init_logging_system(){
+ROS2_SPDLOG_LOGGER_LOCAL void init_logging_system(bool hook_on_shutdown){
   // prevent concurrent calls to this function
   static std::mutex init_mux;
-  std::lock_guard lock(init_mux);
+  std::scoped_lock lock{init_mux};
 
   if (is_logging_system_initialized) {
     throw ros2_spdlog_logger::LoggingAlreadyInitialized();
@@ -282,12 +335,14 @@ ROS2_SPDLOG_LOGGER_LOCAL void init_logging_system(){
   // maintain same flushing behavior
   spdlog::flush_every(std::chrono::seconds(5));
 
-  // setup a post-shutdown callback to destroy all logging things beforehand
-  rclcpp::on_shutdown(
-    []() {
-      shutdown_logging_system();
+  if (hook_on_shutdown){
+    // setup a post-shutdown callback to destroy all logging things beforehand
+    rclcpp::on_shutdown(
+      []() {
+        shutdown_logging_system();
+    }
+    );
   }
-  );
 
   // set the output handler for logging using our custom sink
   rcutils_logging_set_output_handler(logging_sink_output_handler);
@@ -307,6 +362,7 @@ namespace ros2_spdlog_logger
 ROS2_SPDLOG_LOGGER_PUBLIC void init(
   int argc,
   char const * const * argv,
+  bool hook_on_shutdown,
   const rclcpp::InitOptions & init_options,
   rclcpp::SignalHandlerOptions signal_handler_options)
 {
@@ -319,12 +375,13 @@ ROS2_SPDLOG_LOGGER_PUBLIC void init(
     argc, argv, changed_init_options, signal_handler_options
   );
 
-  init_logging_system();
+  init_logging_system(hook_on_shutdown);
 }
 
 ROS2_SPDLOG_LOGGER_PUBLIC std::vector<std::string> init_and_remove_ros_arguments(
   int argc,
   char const * const * argv,
+  bool hook_on_shutdown,
   const rclcpp::InitOptions & init_options)
 {
   // copy the init options but disable logging
@@ -336,15 +393,19 @@ ROS2_SPDLOG_LOGGER_PUBLIC std::vector<std::string> init_and_remove_ros_arguments
     argc, argv, changed_init_options
   );
 
-  init_logging_system();
+  init_logging_system(hook_on_shutdown);
 
   return non_ros_args;
+}
+
+ROS2_SPDLOG_LOGGER_PUBLIC void shutdown(){
+  shutdown_logging_system();
 }
 
 ROS2_SPDLOG_LOGGER_PUBLIC ros2_spdlog_logger::LoggerPtr get_logger(const std::string & logger_name)
 {
   static std::mutex get_logger_mux;
-  std::scoped_lock lock(get_logger_mux);
+  std::scoped_lock lock{get_logger_mux};
 
   // fetch existing logger entry
   auto logger = spdlog::get(logger_name);
