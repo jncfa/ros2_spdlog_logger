@@ -19,12 +19,18 @@ bool is_env_defined(const std::string_view env)
   return std::getenv(env.data()) != nullptr;
 }
 
-void logger_usage()
+void logger_usage(uint logger_id = 0)
 {
-  auto logger = ros2_spdlog_logger::get_logger("my_custom_logger");
+  auto logger = ros2_spdlog_logger::get_logger(fmt::format("my_custom_logger-{}", logger_id));
 
   // the loggers are simply typedefs to spdlog::Logger, so if you know how to use those it should be easy!
   logger->warn("no way! i can just use this spdlog now!");
+
+  // so now you can make use of the great fmtlib :)
+  logger->warn("so {} is now just a {} {} away!", "fmt formatting", "few", "characters");
+
+  // you can also just use RCLCPP macros too!
+  RCLCPP_ERROR(rclcpp::get_logger(fmt::format("rclcpp_logger-{}", logger_id)), "wait so this also just %s?? %s", "works", "craazy");
 }
 
 int main(int argc, char ** argv)
@@ -60,11 +66,10 @@ int main(int argc, char ** argv)
   } else {
     std::vector<std::thread> vectest;
     for (auto x = 0; x < 10; x++) {
-      vectest.emplace_back([](){
+      vectest.emplace_back([x](){
         // use the logger a bunch of times
           for(auto y = 0; y < 100000 && rclcpp::ok(); y++) {
-            logger_usage();
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            logger_usage(x);
           }
       });
     }
@@ -77,9 +82,8 @@ int main(int argc, char ** argv)
   }
 
   // be careful with logging if you have hook_on_shutdown enabled!
-  // any logging calls after getting SIGINT will cause issues!
-  if (rclcpp::ok()){
-    spdlog::error("print this now!");
-  }
+  // any logging calls after getting SIGINT with that option enabled will cause a throw!
+  spdlog::error("print this now!");
+
   return EXIT_SUCCESS;
 }

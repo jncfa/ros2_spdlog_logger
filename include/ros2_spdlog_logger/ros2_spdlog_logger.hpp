@@ -22,7 +22,7 @@ using LoggerPtr = std::shared_ptr<Logger>;
 ROS2_SPDLOG_LOGGER_PUBLIC void init(
   int argc,
   char const * const * argv,
-  bool hook_on_shutdown = true,
+  bool hook_on_shutdown = false,
   const rclcpp::InitOptions & init_options = rclcpp::InitOptions(),
   rclcpp::SignalHandlerOptions signal_handler_options = rclcpp::SignalHandlerOptions::All);
 

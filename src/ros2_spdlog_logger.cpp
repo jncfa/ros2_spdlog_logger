@@ -122,8 +122,8 @@ ROS2_SPDLOG_LOGGER_PUBLIC void logging_sink_output_handler(
   // build message using the funcs that would be used by rcl
   const auto default_allocator = rcutils_get_default_allocator();
 
-  // local buffer for processing messages (same size as defined in rcutils)
-  thread_local std::array<char, 2048> msg_buf;
+  // local buffer for processing messages (same size as defined in rcutils/logging.c)
+  thread_local std::array<char, 1024> msg_buf;
 
   rcutils_char_array_t msg_array = {
     msg_buf.data(),
