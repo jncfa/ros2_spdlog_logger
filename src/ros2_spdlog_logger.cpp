@@ -35,11 +35,11 @@
 #include "ros2_spdlog_logger/visibility_control.h"
 
 
-// use slightly modified ros pattern ([{severity}] [{time}] [{name}]: {message}): "[%l] [%Y-%m-%d %H:%M:%S.%e] [%n] [%s:%#]: %v"
 // spdlog's is [%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%s:%#] %v
-
 #define SPDLOG_DEFAULT_PATTERN "%+"
-#define ROS_DEFAULT_PATTERN "[%^%8!l%$] [%E.%F] %@ [%n]: %v"
+
+// slightly modified ros pattern, equivalent is: [{severity}] [{time}] [{name}]: {message})"
+#define ROS_DEFAULT_PATTERN "[%^%8!l%$] [%E.%F] [%n]: %v"
 
 namespace {
 // helper function to get environment variable as a optional
@@ -80,14 +80,11 @@ ROS2_SPDLOG_LOGGER_LOCAL bool getenv_value(const std::string_view env, const boo
 }
 
 ROS2_SPDLOG_LOGGER_LOCAL std::string get_pattern(){
+  // check which pattern we want to use (USE_ROS_PATTERN overrides all others)
   static const auto default_pattern = getenv_opt("ROS2_SPDLOG_PATTERN", SPDLOG_DEFAULT_PATTERN);
   static const auto use_ros_pattern = getenv_value("USE_ROS_PATTERN", false);
 
-  if (use_ros_pattern){
-    return ROS_DEFAULT_PATTERN;
-  }
-
-  return default_pattern;
+  return use_ros_pattern ? ROS_DEFAULT_PATTERN : default_pattern;
 }
 
 // convert ros severity levels to spdlog
@@ -398,8 +395,16 @@ ROS2_SPDLOG_LOGGER_PUBLIC std::vector<std::string> init_and_remove_ros_arguments
   return non_ros_args;
 }
 
-ROS2_SPDLOG_LOGGER_PUBLIC void shutdown(){
-  shutdown_logging_system();
+ROS2_SPDLOG_LOGGER_PUBLIC void shutdown(bool shutdown_rclcpp_context, const std::string& reason_for_shutdown){
+  // optionally shutdown rclcpp (if still valid)
+  if (rclcpp::ok() && shutdown_rclcpp_context){
+    rclcpp::shutdown(nullptr, reason_for_shutdown);
+  }
+
+  // shutdown logging system if initialized
+  if (is_logging_system_initialized) {
+    shutdown_logging_system();
+  }
 }
 
 ROS2_SPDLOG_LOGGER_PUBLIC ros2_spdlog_logger::LoggerPtr get_logger(const std::string & logger_name)

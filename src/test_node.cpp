@@ -52,7 +52,7 @@ int main(int argc, char ** argv)
   ros2_spdlog_logger::init(argc, argv);
 
   // the scope exit ensures we always shutdown the global rclcpp::Context, exiting cleanly
-  RCPPUTILS_SCOPE_EXIT({rclcpp::shutdown();});
+  RCPPUTILS_SCOPE_EXIT({ros2_spdlog_logger::shutdown(true);});
 
   // check if we call this once or if we want to test for concurrency
   if (!is_env_defined("TEST_CONCURRENCY")) {

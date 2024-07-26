@@ -16,7 +16,8 @@ using Logger = spdlog::logger;
 using LoggerPtr = std::shared_ptr<Logger>;
 
 /**
-  * Initializes the rclcpp global context and sets up our custom logging functions.
+  * Initializes the rclcpp::DefaultContext and sets up our custom logging functions.
+  * It is recommended to not use hook_on_shutdown and instead use the ros2_spdlog_logger::shutdown().
   */
 ROS2_SPDLOG_LOGGER_PUBLIC void init(
   int argc,
@@ -26,16 +27,21 @@ ROS2_SPDLOG_LOGGER_PUBLIC void init(
   rclcpp::SignalHandlerOptions signal_handler_options = rclcpp::SignalHandlerOptions::All);
 
 /**
-  * Initializes the rclcpp global context and sets up our custom logging functions.
+  * Initializes the rclcpp::DefaultContext and sets up our custom logging functions.
   * Returns all non-ROS arguments, as if you called rclcpp::init_and_remove_ros_arguments().
+  * It is recommended to not use hook_on_shutdown and instead use the ros2_spdlog_logger::shutdown().
   */
 ROS2_SPDLOG_LOGGER_PUBLIC std::vector<std::string> init_and_remove_ros_arguments(
   int argc,
   char const * const * argv,
-  bool hook_on_shutdown = true,
+  bool hook_on_shutdown = false,
   const rclcpp::InitOptions & init_options = rclcpp::InitOptions());
 
-ROS2_SPDLOG_LOGGER_PUBLIC void shutdown();
+/**
+ * Shutdown the logging system and optionally rclcpp::DefaultContext.
+ * It is recommended to wrap the shutdown with a scope guard to ensure its execution.
+*/
+ROS2_SPDLOG_LOGGER_PUBLIC void shutdown(bool shutdown_rclcpp_context = false, const std::string& reason_for_shutdown = "");
 
 /**
  * Get a logger instance with the given logger name, using default settings.
@@ -44,13 +50,15 @@ ROS2_SPDLOG_LOGGER_PUBLIC LoggerPtr get_logger(const std::string & logger_name =
 
 /**
  * Add sink to the list of global sinks.
+ * This allows you to provide custom sinks for added functionality.
  * This function can only be used before initializing the logging system, otherwise it will throw.
 */
 ROS2_SPDLOG_LOGGER_PUBLIC void add_sink(spdlog::sink_ptr sinks);
 
 /**
- * Initialize the sinks to be used in the logging system.
+ * Add sinks to the list of global sinks.
  * This allows you to provide custom sinks for added functionality.
+ * This function can only be used before initializing the logging system, otherwise it will throw.
 */
 template<typename ...TSinks>
 ROS2_SPDLOG_LOGGER_PUBLIC void add_sinks(TSinks... sinks){
