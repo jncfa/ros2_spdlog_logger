@@ -89,7 +89,7 @@ ament_export_libraries(
 
 ament_export_dependencies(
   "rclcpp"
-  "rclc"
+  "rcl"
   "spdlog_vendor"
   "rcl_logging_interface"
   "rcutils"
