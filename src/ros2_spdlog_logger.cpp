@@ -65,13 +65,12 @@ ROS2_SPDLOG_LOGGER_LOCAL bool getenv_value(const std::string_view env, const boo
 
   std::string lowered_env = env_value.value();
 
-  std::transform(lowered_env.begin(), lowered_env.end(), lowered_env.begin(),
-    [](unsigned char c){ return std::tolower(c); });
+  std::for_each(lowered_env.begin(), lowered_env.end(), [](unsigned char c){ return std::tolower(c); });
 
-  if (env_value->compare("0") == 0 || env_value->compare("false") == 0){
+  if (lowered_env == "0" || lowered_env == "false"){
     return false;
   }
-  else if (env_value->compare("1") == 0 || env_value->compare("true") == 0){
+  else if (lowered_env == "1" || lowered_env == "true"){
     return true;
   }
 
